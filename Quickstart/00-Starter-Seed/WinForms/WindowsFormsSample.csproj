@@ -90,8 +90,14 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Auth0.OidcClient.WinForms">
-      <Version>3.1.2</Version>
+      <Version>3.2.1</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AuthLib\AuthLib.csproj">
+      <Project>{ca61dad9-eb4b-49a3-bbcb-64969cf41de0}</Project>
+      <Name>AuthLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

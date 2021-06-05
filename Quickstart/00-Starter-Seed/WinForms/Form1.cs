@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Text;
 using System.Windows.Forms;
 using Auth0.OidcClient;
+using AuthLib;
 using IdentityModel.OidcClient;
 using IdentityModel.OidcClient.Browser;
 
@@ -11,23 +12,24 @@ namespace WindowsFormsSample
 {
     public partial class Form1 : Form
     {
-        private Auth0Client client;
+        private AuthHelper authHelper;
 
         public Form1()
         {
+            var client = new Auth0Client(new Auth0ClientOptions
+            {
+                Domain = ConfigurationManager.AppSettings["Auth0:Domain"],
+                ClientId = ConfigurationManager.AppSettings["Auth0:ClientId"],
+                Scope = "openid offline_access"
+            });
+
+            authHelper = new AuthHelper(client);
             InitializeComponent();
         }
 
         private async void LoginButton_Click(object sender, EventArgs e)
         {
-            string domain = ConfigurationManager.AppSettings["Auth0:Domain"];
-            string clientId = ConfigurationManager.AppSettings["Auth0:ClientId"];
 
-            client = new Auth0Client(new Auth0ClientOptions
-            {
-                Domain = domain,
-                ClientId = clientId
-            });
 
             var extraParameters = new Dictionary<string, string>();
 
@@ -37,17 +39,14 @@ namespace WindowsFormsSample
             if (!string.IsNullOrEmpty(audienceTextBox.Text))
                 extraParameters.Add("audience", audienceTextBox.Text);
 
-            DisplayResult(await client.LoginAsync(extraParameters: extraParameters));
+            var success = await authHelper.LoginAsync(extraParameters: extraParameters);
+
+            if(success)
+                DisplayResult();
         }
 
-        private void DisplayResult(LoginResult loginResult)
+        private void DisplayResult()
         {
-            // Display error
-            if (loginResult.IsError)
-            {
-                resultTextBox.Text = loginResult.Error;
-                return;
-            }
 
             loginButton.Visible = false;
             logoutButton.Visible = true;
@@ -57,30 +56,18 @@ namespace WindowsFormsSample
 
             sb.AppendLine("Tokens");
             sb.AppendLine("------");
-            sb.AppendLine($"id_token: {loginResult.IdentityToken}");
-            sb.AppendLine($"access_token: {loginResult.AccessToken}");
-            sb.AppendLine($"refresh_token: {loginResult.RefreshToken}");
+            sb.AppendLine($"id_token: {authHelper.GetIDToken()}");
+            sb.AppendLine($"access_token: {authHelper.GetAccessToken()}");
+            sb.AppendLine($"refresh_token: {authHelper.GetRefreshToken()}");
             sb.AppendLine();
-
-            sb.AppendLine("Claims");
-            sb.AppendLine("------");
-            foreach (var claim in loginResult.User.Claims)
-            {
-                sb.AppendLine($"{claim.Type}: {claim.Value}");
-            }
 
             resultTextBox.Text = sb.ToString();
         }
 
         private async void LogoutButton_Click(object sender, EventArgs e)
         {
-            BrowserResultType browserResult = await client.LogoutAsync();
+             await authHelper.LogoutAsync();
 
-            if (browserResult != BrowserResultType.Success)
-            {
-                resultTextBox.Text = browserResult.ToString();
-                return;
-            }
 
             logoutButton.Visible = false;
             loginButton.Visible = true;
